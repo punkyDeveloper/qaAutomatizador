@@ -1,0 +1,12 @@
+# Dependencias
+node_modules/
+
+# Variables con datos sensibles
+.env
+
+# Resultados generados por Playwright
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+playwright/.auth/
