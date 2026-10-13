@@ -1,0 +1,12 @@
+{
+  "servers": {
+    "rag-qa-playwright": {
+      "type": "stdio",
+      "command": "C:\\Users\\elsan\\.venvs\\rag-qa-playwright\\Scripts\\python.exe",
+      "args": [
+        "-m",
+        "rag_qa.servidor_mcp"
+      ]
+    }
+  }
+}

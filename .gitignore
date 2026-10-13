@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Base de datos del RAG (Paso 3): se genera, no se sube
+chroma_db/
+
+# Node / Playwright
+node_modules/
+test-results/
+playwright-report/
+blob-report/
+
+# Datos sensibles
+.env
+
+# Archivos comprimidos de descarga
+*.zip
+
+# Generados al instalar y probar
+*.egg-info/
+.pytest_cache/
