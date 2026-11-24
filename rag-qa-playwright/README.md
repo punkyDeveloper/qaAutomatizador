@@ -94,7 +94,7 @@ python -m pytest                             Ejecutar las pruebas
 
 ## Estado
 
-- Paso 0 (alcance) ✅ — ver `docs/paso-0-alcance-rag-qa.md`
+- Paso 0 (alcance) ✅
 - Paso 1 (base de conocimiento) ✅ — pendiente 1.6: ejemplos reales del proyecto
 - Paso 2 (estructura de documentos) ✅
 - Paso 3 (indexación) ✅

@@ -6,7 +6,8 @@ Proyecto del equipo para automatizar y mejorar las pruebas de front con **Playwr
 
 | Carpeta | Qué es |
 |---|---|
-| `rag-qa-playwright/` | El RAG: base de conocimiento (reglas, convenciones, errores, plantilla), código Python, pruebas e instalador. |
+| `instalar.bat` | El único instalador. Ver `MANUAL.md`. |
+| `rag-qa-playwright/` | El RAG: base de conocimiento (reglas, convenciones, errores, plantilla), código Python y pruebas. |
 | `.github/copilot-instructions.md` | Reglas que Copilot sigue siempre en este espacio de trabajo. |
 | `agente-qa-copilot/` | Agentes de Copilot (QA Revisor y QA Nuevo Proyecto) que funcionan sin instalar nada. Ver su README. |
 | `plantilla-playwright-pom/` | Proyecto de pruebas de ejemplo, listo para ejecutar contra Sauce Demo. |
@@ -32,4 +33,4 @@ No pide permisos de administrador y se puede ejecutar varias veces.
 Al terminar, abre esta carpeta en VS Code, abre `.vscode/mcp.json`, haz clic en **Start** y usa
 Copilot en modo **Agent**. Detalles en `rag-qa-playwright/README.md`.
 
-Detalle de las decisiones: `rag-qa-playwright/docs/paso-0-alcance-rag-qa.md`.
+**Manual de instalación y uso, paso a paso: [`MANUAL.md`](MANUAL.md).**
