@@ -28,7 +28,9 @@ module.exports = defineConfig({
 
   use: {
     // La URL viene del .env. Así en los tests se usa goto('/ruta') y no la URL completa (Regla 7).
-    baseURL: process.env.BASE_URL,
+    // DEMO: si no hay .env, se usa Sauce Demo para que la plantilla funcione tal cual.
+    // TODO: cuando uses tu app, define BASE_URL en el .env (no cambies este valor por defecto).
+    baseURL: process.env.BASE_URL || 'https://www.saucedemo.com',
 
     // Atributo que usa getByTestId() para buscar elementos.
     // DEMO: Sauce Demo usa data-test="...".
@@ -36,6 +38,9 @@ module.exports = defineConfig({
     testIdAttribute: 'data-test',
 
     // Guarda el trace (grabación paso a paso) cuando un test se reintenta.
+    // SEGURIDAD: el trace y el reporte HTML guardan el texto escrito en cada campo,
+    // incluida la clave de prueba. No compartas ni publiques playwright-report/ ni
+    // test-results/ si usan credenciales que no sean públicas (ya están en .gitignore).
     trace: 'on-first-retry',
 
     // Toma captura de pantalla solo si el test falla.

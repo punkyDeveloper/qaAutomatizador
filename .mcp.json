@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "rag-qa-playwright": {
+      "command": "${USERPROFILE}/.venvs/rag-qa-playwright/Scripts/python.exe",
+      "args": ["-m", "rag_qa.servidor_mcp"]
+    }
+  }
+}

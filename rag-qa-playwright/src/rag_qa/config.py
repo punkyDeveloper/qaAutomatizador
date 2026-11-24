@@ -34,6 +34,13 @@ def _ruta_env(nombre: str, por_defecto: Path) -> Path:
 
 @dataclass(frozen=True)
 class Config:
+    """Rutas y modelo que usa el RAG.
+
+    Nombres cortos que se mantienen porque los usa todo el código:
+    kb_dir = carpeta de la base de conocimiento (knowledge base);
+    db_dir = carpeta de la base de datos vectorial.
+    """
+
     kb_dir: Path = field(
         default_factory=lambda: _ruta_env("RAG_QA_KB", RAIZ_PROYECTO / "knowledge-base")
     )

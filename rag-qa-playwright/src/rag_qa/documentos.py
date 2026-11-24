@@ -10,12 +10,29 @@ import hashlib
 from dataclasses import dataclass, field
 from pathlib import Path
 
-# Si cambia la forma de partir los documentos, se sube este número
+# Si cambia la forma de partir o indexar los documentos, se sube este número
 # para que el índice se reconstruya solo.
-VERSION_FRAGMENTADOR = "1"
+# 2: la búsqueda también puntúa por el título de cada sección.
+VERSION_FRAGMENTADOR = "2"
 
 # La introducción (texto antes del primer "## ") solo se indexa si tiene contenido real.
 MIN_CARACTERES_INTRO = 80
+
+# Un documento más grande que esto no es normal: se ignora por seguridad.
+MAX_BYTES_DOCUMENTO = 1_000_000
+
+# Cómo arreglar un documento que no cumple el estándar.
+AYUDA_FORMATO = (
+    "Revisa el formato en docs/estandar-documentos.md "
+    "o ejecuta: python scripts/validar_documentos.py"
+)
+
+# Marcas que abren y cierran el bloque de metadatos.
+INICIO_METADATOS = "---\n"
+FIN_METADATOS = "\n---\n"
+
+# Marca invisible (BOM) que algunos editores de Windows agregan al inicio del archivo.
+MARCA_BOM = "﻿"
 
 
 @dataclass
@@ -25,6 +42,8 @@ class Documento:
     metadatos: dict[str, str]
     titulo: str
     cuerpo: str                  # todo lo que va después del bloque de metadatos
+    # Bytes leídos del archivo: la huella usa estos mismos, sin volver a leer el disco.
+    contenido_bytes: bytes = field(default=b"", repr=False)
 
     @property
     def id(self) -> str:
@@ -50,18 +69,19 @@ class ErrorDocumento(ValueError):
 
 def leer_metadatos(texto: str) -> tuple[dict[str, str], str]:
     """Separa el bloque --- inicial del resto. Devuelve (metadatos, cuerpo)."""
-    texto = texto.replace("\r\n", "\n").lstrip("﻿")
-    if not texto.startswith("---\n"):
+    texto = texto.replace("\r\n", "\n").lstrip(MARCA_BOM)
+    if not texto.startswith(INICIO_METADATOS):
         raise ErrorDocumento("no tiene bloque de metadatos entre líneas ---")
-    fin = texto.find("\n---\n", 4)
+    # -1: con un bloque vacío (---\n---\n) el \n de la apertura también es parte del cierre.
+    fin = texto.find(FIN_METADATOS, len(INICIO_METADATOS) - 1)
     if fin == -1:
         raise ErrorDocumento("el bloque de metadatos no está cerrado con ---")
     metadatos: dict[str, str] = {}
-    for linea in texto[4:fin].splitlines():
+    for linea in texto[len(INICIO_METADATOS):fin].splitlines():
         if ":" in linea:
             clave, valor = linea.split(":", 1)
             metadatos[clave.strip()] = valor.strip().strip('"').strip("'")
-    return metadatos, texto[fin + 5:]
+    return metadatos, texto[fin + len(FIN_METADATOS):]
 
 
 def dividir_secciones(cuerpo: str) -> tuple[str, str, list[tuple[str, str]]]:
@@ -82,7 +102,9 @@ def dividir_secciones(cuerpo: str) -> tuple[str, str, list[tuple[str, str]]]:
         if not en_codigo and linea.startswith("## "):
             secciones.append([linea[3:].strip(), []])
             continue
-        (secciones[-1][1] if secciones else intro).append(linea)
+        # Si ya empezó una sección, la línea es parte de ella; si no, de la introducción.
+        destino = secciones[-1][1] if secciones else intro
+        destino.append(linea)
 
     def limpiar(lineas: list[str]) -> str:
         # Quita separadores "---" y líneas vacías sobrantes al inicio y al final.
@@ -96,8 +118,18 @@ def dividir_secciones(cuerpo: str) -> tuple[str, str, list[tuple[str, str]]]:
 
 
 def cargar_documento(ruta: Path, kb_dir: Path) -> Documento:
-    texto = ruta.read_text(encoding="utf-8")
-    metadatos, cuerpo = leer_metadatos(texto)
+    """Lee un .md de la base. Si no cumple el estándar, el error dice qué archivo es."""
+    datos = _leer_con_limite(ruta)
+    try:
+        texto = datos.decode("utf-8")
+    except UnicodeDecodeError as e:
+        raise ErrorDocumento(f"{ruta.name}: no está guardado en UTF-8; guárdalo como UTF-8. {AYUDA_FORMATO}") from e
+    # Igual que read_text: los saltos de línea de Windows o Mac antiguo pasan a "\n".
+    texto = texto.replace("\r\n", "\n").replace("\r", "\n")
+    try:
+        metadatos, cuerpo = leer_metadatos(texto)
+    except ErrorDocumento as e:
+        raise ErrorDocumento(f"{ruta.name}: {e}. {AYUDA_FORMATO}") from e
     titulo, _, _ = dividir_secciones(cuerpo)
     return Documento(
         ruta=ruta,
@@ -105,24 +137,59 @@ def cargar_documento(ruta: Path, kb_dir: Path) -> Documento:
         metadatos=metadatos,
         titulo=titulo or ruta.stem,
         cuerpo=cuerpo,
+        contenido_bytes=datos,
     )
 
 
+def _leer_con_limite(ruta: Path) -> bytes:
+    """Lee como mucho MAX_BYTES_DOCUMENTO + 1 bytes.
+
+    Seguridad: el archivo pudo crecer después de revisar su tamaño, así que
+    nunca se lee completo a ciegas; si pasa el límite, se rechaza.
+    """
+    with ruta.open("rb") as archivo:
+        datos = archivo.read(MAX_BYTES_DOCUMENTO + 1)
+    if len(datos) > MAX_BYTES_DOCUMENTO:
+        raise ErrorDocumento(f"{ruta.name}: pesa más de {MAX_BYTES_DOCUMENTO} bytes. {AYUDA_FORMATO}")
+    return datos
+
+
+def _es_documento_seguro(ruta: Path, kb_dir: Path) -> bool:
+    """Descarta enlaces simbólicos, enlaces duros, archivos fuera de la base y archivos enormes."""
+    if ruta.is_symlink() or not ruta.resolve().is_relative_to(kb_dir.resolve()):
+        return False
+    informacion = ruta.stat()
+    # st_nlink > 1: es un enlace duro, el mismo archivo puede estar fuera de la base.
+    return informacion.st_nlink == 1 and informacion.st_size <= MAX_BYTES_DOCUMENTO
+
+
 def cargar_documentos(kb_dir: Path) -> list[Documento]:
+    """Lee todos los .md de la base de conocimiento (solo los seguros, ver arriba)."""
     if not kb_dir.is_dir():
-        raise FileNotFoundError(f"No existe la carpeta de conocimiento: {kb_dir}")
-    documentos = [cargar_documento(r, kb_dir) for r in sorted(kb_dir.rglob("*.md"))]
+        raise FileNotFoundError(
+            f"No existe la carpeta de conocimiento: {kb_dir}. "
+            "Revisa la variable de entorno RAG_QA_KB o crea la carpeta knowledge-base/."
+        )
+    rutas = [r for r in sorted(kb_dir.rglob("*.md")) if _es_documento_seguro(r, kb_dir)]
+    documentos = [cargar_documento(r, kb_dir) for r in rutas]
     if not documentos:
-        raise FileNotFoundError(f"No hay documentos .md en {kb_dir}")
-    vistos: dict[str, str] = {}
+        raise FileNotFoundError(
+            f"No hay documentos .md en {kb_dir}. "
+            "Agrega uno a partir de docs/plantilla-nuevo-documento.md."
+        )
+    archivo_por_id: dict[str, str] = {}
     for doc in documentos:
-        if doc.id in vistos:
-            raise ErrorDocumento(f"id repetido '{doc.id}' en {doc.archivo} y {vistos[doc.id]}")
-        vistos[doc.id] = doc.archivo
+        if doc.id in archivo_por_id:
+            raise ErrorDocumento(
+                f"id repetido '{doc.id}' en {doc.archivo} y {archivo_por_id[doc.id]}. "
+                "Cambia el id de uno de los dos."
+            )
+        archivo_por_id[doc.id] = doc.archivo
     return documentos
 
 
 def fragmentar(documento: Documento) -> list[Fragmento]:
+    """Parte un documento en un fragmento por sección "## " (y la introducción si tiene contenido)."""
     titulo, intro, secciones = dividir_secciones(documento.cuerpo)
     partes: list[tuple[str, str]] = []
     if len(intro) >= MIN_CARACTERES_INTRO:
@@ -138,14 +205,14 @@ def fragmentar(documento: Documento) -> list[Fragmento]:
         "version_doc": documento.metadatos.get("version", ""),
     }
     fragmentos = []
-    for i, (seccion, contenido) in enumerate(partes):
+    for orden, (seccion, contenido) in enumerate(partes):
         fragmentos.append(
             Fragmento(
-                id=f"{documento.id}#{i:02d}",
+                id=f"{documento.id}#{orden:02d}",
                 texto=f"{documento.titulo} — {seccion}\n\n{contenido}",
                 seccion=seccion,
                 contenido=contenido,
-                metadatos={**base, "seccion": seccion, "orden": str(i)},
+                metadatos={**base, "seccion": seccion, "orden": str(orden)},
             )
         )
     return fragmentos
@@ -161,23 +228,8 @@ def huella(documentos: list[Documento], extra: str = "") -> str:
     Si cambia cualquier documento (o el modelo, que va en `extra`),
     la huella cambia y el índice se reconstruye automáticamente.
     """
-    h = hashlib.sha256(f"{VERSION_FRAGMENTADOR}|{extra}".encode())
+    calculadora = hashlib.sha256(f"{VERSION_FRAGMENTADOR}|{extra}".encode())
     for doc in sorted(documentos, key=lambda d: d.archivo):
-        h.update(doc.archivo.encode())
-        h.update(doc.ruta.read_bytes().replace(b"\r\n", b"\n"))
-    return h.hexdigest()
-
-
-def buscar_seccion(documentos: list[Documento], doc_id: str, inicio_seccion: str) -> str:
-    """Devuelve el contenido de una sección por id de documento y comienzo del título."""
-    for doc in documentos:
-        if doc.id != doc_id:
-            continue
-        for frag in fragmentar(doc):
-            if frag.seccion.lower().startswith(inicio_seccion.lower()):
-                return frag.contenido
-    return ""
-
-
-def documento_por_categoria(documentos: list[Documento], categoria: str) -> list[Documento]:
-    return [d for d in documentos if d.categoria == categoria]
+        calculadora.update(doc.archivo.encode())
+        calculadora.update(doc.contenido_bytes.replace(b"\r\n", b"\n"))
+    return calculadora.hexdigest()

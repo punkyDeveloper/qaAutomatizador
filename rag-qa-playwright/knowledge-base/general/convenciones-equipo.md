@@ -76,7 +76,7 @@ Excepción aceptada: `login` se usa en inglés porque es un término de uso com�
 
 ## C4. Nombres de tests
 
-Formato: **en español, empezando por lo que hace el sistema** (verbo en tercera persona).
+Cómo llamar (nombrar) cada test. Formato: **en español, empezando por lo que hace el sistema** (verbo en tercera persona).
 
 ```javascript
 // Bien

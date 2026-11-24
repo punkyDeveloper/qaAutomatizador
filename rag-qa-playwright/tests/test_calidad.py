@@ -20,7 +20,8 @@ from rag_qa.indice import Indice
 
 from .conftest import KB_REAL
 
-TOP = 3
+# Cuántos de los primeros resultados se miran para decidir si acertó.
+PRIMEROS_RESULTADOS = 3
 
 # (consulta, categoría para filtrar o None, inicios de sección aceptados)
 CASOS_ERRORES_EXACTOS = [
@@ -28,6 +29,7 @@ CASOS_ERRORES_EXACTOS = [
     ("strict mode violation: getByRole('button') resolved to 2 elements", None, ["Error: Strict mode violation"]),
     ("page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL", None, ["Error: Cannot navigate"]),
     ("page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/login", None, ["Error: ERR_CONNECTION_REFUSED"]),
+    ("page.goto: net::ERR_NAME_NOT_RESOLVED at https://mi app.com/login", None, ["Error: ERR_NAME_NOT_RESOLVED"]),
     ("browserType.launch: Executable doesn't exist at /ms-playwright/chromium", None, ["Error: Navegadores no instalados"]),
     ("<div class=\"overlay\"></div> intercepts pointer events", None, ["Error: Elemento bloqueado"]),
     ("locator.fill: Target page, context or browser has been closed", None, ["Error: Target page"]),
@@ -51,11 +53,18 @@ CASOS_LENGUAJE_NATURAL = [
     ("El encabezado del sitio se repite en todas las páginas", None, ["Regla 5", "7. Archivo `tests/components"]),
     ("El botón no aparece y la prueba se queda esperando", "errores", ["Error: Timeout en una acción", "Error: Elemento bloqueado", "Error: Aserción fallida"]),
     ("¿Cómo registro un page object nuevo en los fixtures?", None, ["C6", "9. Archivo `tests/fixtures"]),
+    ("¿Qué hago si un selector encuentra varios botones iguales?", None, ["Error: Strict mode violation"]),
+    ("¿Puedo usar sleep para esperar que cargue la página?", None, ["Regla 3"]),
+    ("Corrí npx playwright test y dice que no encontró ninguna prueba", None, ["Error: No tests found"]),
+    # Preguntas del probador-rag: no deben ganarles los archivos de la plantilla.
+    ("¿dónde pongo la contraseña del usuario de prueba?", None, ["Regla 7"]),
+    ("¿qué uso para encontrar un botón en la página?", None, ["Regla 2"]),
+    ("¿cómo le pongo nombre a una función del page object?", None, ["C3", "Regla 4"]),
 ]
 
 
 def _secciones(indice: Indice, consulta: str, categoria: str | None) -> list[str]:
-    resultados = indice.buscar(consulta, [categoria] if categoria else None, TOP)
+    resultados = indice.buscar(consulta, [categoria] if categoria else None, PRIMEROS_RESULTADOS)
     return [r.fragmento.seccion for r in resultados]
 
 

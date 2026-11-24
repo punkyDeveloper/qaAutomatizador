@@ -1,12 +1,18 @@
 # Dependencias
 node_modules/
 
-# Variables con datos sensibles
+# Variables con datos sensibles (.env, .env.local, .env.qa, ...).
+# Solo se sube .env.example, que no tiene datos reales.
 .env
+.env.*
+!.env.example
 
-# Resultados generados por Playwright
+# Resultados generados por Playwright.
+# OJO: los reportes y las trazas pueden guardar lo que se escribió en los
+# campos (incluida la clave de prueba). Nunca se suben a Git.
 test-results/
 playwright-report/
 blob-report/
 playwright/.cache/
 playwright/.auth/
+*.zip

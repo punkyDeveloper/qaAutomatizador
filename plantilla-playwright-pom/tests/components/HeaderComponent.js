@@ -18,16 +18,17 @@ class HeaderComponent {
     // TODO: reemplaza 'Open Menu' por el nombre real del botón de tu app.
     this.menuButton = page.getByRole('button', { name: 'Open Menu' });
 
-    // DEMO: opción "Logout" dentro del menú lateral de Sauce Demo.
+    // DEMO: opción "Logout" del menú lateral de Sauce Demo. Es un <a>, pero tiene
+    // role="button", por eso se busca como botón y no como link.
     // TODO: reemplaza 'Logout' por el texto real de tu app.
-    this.cerrarSesionLink = page.getByRole('link', { name: 'Logout' });
+    this.cerrarSesionButton = page.getByRole('button', { name: 'Logout' });
   }
 
   async cerrarSesion() {
     await this.menuButton.click();
     // No hace falta esperar a que el menú se abra:
-    // Playwright espera solo a que el link esté listo antes del clic (Regla 3).
-    await this.cerrarSesionLink.click();
+    // Playwright espera solo a que el botón esté listo antes del clic (Regla 3).
+    await this.cerrarSesionButton.click();
   }
 }
 

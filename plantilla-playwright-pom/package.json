@@ -2,6 +2,10 @@
   "name": "plantilla-playwright-pom",
   "version": "1.0.0",
   "description": "Plantilla base de pruebas con Playwright + POM",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "test": "playwright test",
     "test:ui": "playwright test --ui",
@@ -9,7 +13,7 @@
     "report": "playwright show-report"
   },
   "devDependencies": {
-    "@playwright/test": "^1.63.0",
-    "dotenv": "^18.0.5"
+    "@playwright/test": "1.65.0",
+    "dotenv": "18.0.10"
   }
 }

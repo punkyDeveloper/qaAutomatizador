@@ -18,10 +18,18 @@ Proyecto del equipo para automatizar y mejorar las pruebas de front con **Playwr
 - Paso 2 (estructura de documentos): completo.
 - Pasos 3 a 6 (indexación, búsqueda, evaluación y conexión con Copilot): completos.
 
-## Instalar el RAG
+## Instalar (un solo instalador)
 
-Doble clic en `rag-qa-playwright/instalar.bat`. Al terminar, abre esta carpeta en VS Code,
-abre `.vscode/mcp.json`, haz clic en **Start** y usa Copilot en modo **Agent**.
-Detalles en `rag-qa-playwright/README.md`.
+Doble clic en **`instalar.bat`**, en esta carpeta (`qaAutomatizador`). Hace tres pasos:
+
+1. Actualiza el conocimiento de los agentes desde `rag-qa-playwright/knowledge-base`.
+2. Instala los agentes QA Revisor y QA Nuevo Proyecto en tu Copilot (`%USERPROFILE%\.copilot`). No necesita Python.
+3. Instala el RAG (necesita Python 3.10+): librerías, índice, configuración de Copilot y pruebas.
+
+Si no tienes Python, los agentes quedan instalados igual y el instalador explica cómo terminar.
+No pide permisos de administrador y se puede ejecutar varias veces.
+
+Al terminar, abre esta carpeta en VS Code, abre `.vscode/mcp.json`, haz clic en **Start** y usa
+Copilot en modo **Agent**. Detalles en `rag-qa-playwright/README.md`.
 
 Detalle de las decisiones: `rag-qa-playwright/docs/paso-0-alcance-rag-qa.md`.

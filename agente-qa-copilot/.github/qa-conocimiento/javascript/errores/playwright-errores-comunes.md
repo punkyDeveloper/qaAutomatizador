@@ -103,7 +103,7 @@ this.guardarButton = this.modal.getByRole('button', { name: 'Guardar' });
 
 ---
 
-## Error: Aserción fallida por timeout
+## Error: Aserción fallida por timeout (Timed out en un expect)
 
 **Mensaje:**
 ```
@@ -144,6 +144,29 @@ Error: page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL
 - Crear el `.env` a partir de `.env.example` y definir `BASE_URL`.
 - Verificar que el config cargue las variables (por ejemplo con `require('dotenv').config()` al inicio).
 - NO quemar la URL completa en el Page Object (viola la Regla 7).
+
+---
+
+## Error: ERR_NAME_NOT_RESOLVED (la dirección no existe)
+
+**Mensaje:**
+```
+Error: page.goto: net::ERR_NAME_NOT_RESOLVED at https://mi app.com/login
+```
+
+**Qué significa:** el navegador no encontró el dominio de la URL. La dirección está mal escrita o no existe.
+
+**Causas comunes:**
+- `BASE_URL` tiene un error de tipeo, espacios o le falta parte del dominio.
+- El sitio solo existe dentro de la red de la empresa (VPN apagada).
+- Sin conexión a internet.
+
+**Dónde buscar:** el valor de `BASE_URL` en el `.env` y en `playwright.config.js`.
+
+**Solución:**
+- Copiar la URL del `.env` en el navegador y comprobar que abre la página.
+- Quitar espacios y revisar que empiece por `http://` o `https://`.
+- Si es un sitio interno, conectar la VPN antes de ejecutar las pruebas.
 
 ---
 

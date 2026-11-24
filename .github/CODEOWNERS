@@ -1,0 +1,17 @@
+# Revisión obligatoria (CODEOWNERS)
+#
+# Todo cambio en estas carpetas necesita la aprobación del dueño antes de entrar a main.
+# Motivo de seguridad: lo que hay aquí lo leen Copilot y los agentes como instrucciones,
+# y el instalador se ejecuta en el computador de cada persona del equipo.
+#
+# Para que se cumpla hay que activarlo en GitHub:
+# Settings > Branches > regla para main > "Require review from Code Owners".
+
+/rag-qa-playwright/knowledge-base/  @punkyDeveloper
+/agente-qa-copilot/.github/         @punkyDeveloper
+/agente-qa-copilot/copiar-y-pegar/  @punkyDeveloper
+/.github/                           @punkyDeveloper
+/instalar.bat                       @punkyDeveloper
+/rag-qa-playwright/requirements.lock @punkyDeveloper
+/rag-qa-playwright/pyproject.toml   @punkyDeveloper
+/.claude/agents/                    @punkyDeveloper

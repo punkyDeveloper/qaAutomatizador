@@ -12,10 +12,21 @@ from __future__ import annotations
 
 import hashlib
 import math
+import os
 import sys
 from typing import Protocol
 
 from .lexico import tokenizar
+
+# Hugging Face no envía estadísticas de uso a internet.
+os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
+
+# Seguridad: versión exacta (commit) de cada modelo conocido. Así se descarga
+# siempre el mismo modelo revisado y no uno que alguien cambie después en internet.
+# Para un modelo que no esté aquí (RAG_QA_MODELO) se usa su última versión.
+REVISIONES_DE_MODELO = {
+    "intfloat/multilingual-e5-small": "614241f622f53c4eeff9890bdc4f31cfecc418b3",
+}
 
 
 class Embedder(Protocol):
@@ -45,7 +56,12 @@ class EmbedderModelo:
                     "o 'pip install -e .' en la carpeta rag-qa-playwright."
                 ) from e
             print(f"[rag-qa] Cargando modelo {self.nombre}...", file=sys.stderr)
-            self._modelo = SentenceTransformer(self.nombre, device="cpu")
+            self._modelo = SentenceTransformer(
+                self.nombre,
+                device="cpu",
+                revision=REVISIONES_DE_MODELO.get(self.nombre),
+                trust_remote_code=False,  # nunca ejecutar código que venga con el modelo
+            )
         return self._modelo
 
     def _codificar(self, textos: list[str]) -> list[list[float]]:
@@ -71,12 +87,16 @@ class EmbedderHash:
         self.nombre = f"hash-{dimension}"
 
     def _vector(self, texto: str) -> list[float]:
-        v = [0.0] * self.dimension
-        for tok in tokenizar(texto):
-            h = int(hashlib.md5(tok.encode()).hexdigest(), 16)
-            v[h % self.dimension] += 1.0 if (h >> 64) % 2 else -1.0
-        norma = math.sqrt(sum(x * x for x in v)) or 1.0
-        return [x / norma for x in v]
+        vector = [0.0] * self.dimension
+        for palabra in tokenizar(texto):
+            # md5 aquí no es por seguridad: solo reparte las palabras de forma fija.
+            numero_hash = int(hashlib.md5(palabra.encode()).hexdigest(), 16)
+            # Cada palabra cae en una posición fija del vector según su hash; otro bit
+            # del hash decide si suma +1 o -1, para que no se acumulen todas en positivo.
+            posicion = numero_hash % self.dimension
+            vector[posicion] += 1.0 if (numero_hash >> 64) % 2 else -1.0
+        norma = math.sqrt(sum(valor * valor for valor in vector)) or 1.0
+        return [valor / norma for valor in vector]
 
     def documentos(self, textos: list[str]) -> list[list[float]]:
         return [self._vector(t) for t in textos]

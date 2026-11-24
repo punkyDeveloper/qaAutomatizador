@@ -6,7 +6,7 @@ RAG que ayuda al equipo a crear, revisar y corregir pruebas de front con Playwri
 
 Requisito: Python 3.10 o superior.
 
-1. Doble clic en **`instalar.bat`** (o ejecútalo desde la terminal).
+1. Doble clic en **`instalar.bat`** en la carpeta `qaAutomatizador` (la que contiene este proyecto). Es el único instalador: también instala los agentes de Copilot.
 2. Espera a que termine: instala las librerías, descarga el modelo (~470 MB la primera vez), indexa los documentos, configura Copilot y ejecuta las pruebas.
 3. Abre en VS Code la carpeta que contiene este proyecto (`qaAutomatizador`), abre `.vscode/mcp.json` y haz clic en **Start** sobre `rag-qa-playwright`.
 4. En el chat de Copilot, cambia a modo **Agent**: en el ícono de herramientas debe aparecer `rag-qa-playwright`.
@@ -41,7 +41,6 @@ Copilot (modo Agent) ──MCP──> servidor_mcp.py ──> herramientas.py
 
 ```
 rag-qa-playwright/
-├── instalar.bat         Instalador para Windows
 ├── pyproject.toml       Dependencias del proyecto
 ├── src/rag_qa/          Código del RAG
 │   ├── documentos.py    Lee y parte los documentos

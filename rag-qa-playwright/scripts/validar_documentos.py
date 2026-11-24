@@ -31,25 +31,65 @@ VALORES_PERMITIDOS = {
 MAX_CARACTERES_SECCION = 4000
 
 
+# Seguridad: un documento más grande que esto no es normal (y llenaría el índice).
+MAX_BYTES_DOCUMENTO = 1_000_000
+
+# Frases típicas de "inyección de instrucciones": un documento de la base de
+# conocimiento no debería dar órdenes a Copilot para saltarse sus reglas.
+FRASES_SOSPECHOSAS = [
+    "ignora las instrucciones",
+    "ignora todas las instrucciones",
+    "ignora las reglas",
+    "olvida las instrucciones",
+    "ignore previous instructions",
+    "ignore all previous instructions",
+    "disregard previous instructions",
+]
+
+
+# Copia de rag_qa.documentos.leer_metadatos para no necesitar instalar el paquete.
+# Si cambias una, cambia la otra (deben comportarse igual).
 def leer_metadatos(texto):
     """Devuelve (metadatos, cuerpo) o (None, texto) si no hay bloque ---."""
+    # Saltos de línea de Windows -> "\n", y se quita la marca BOM que agregan algunos editores.
+    texto = texto.replace("\r\n", "\n").lstrip("﻿")
     if not texto.startswith("---\n"):
         return None, texto
-    fin = texto.find("\n---\n", 4)
+    fin = texto.find("\n---\n", 4)  # 4 = largo de "---\n"
     if fin == -1:
         return None, texto
     metadatos = {}
     for linea in texto[4:fin].splitlines():
         if ":" in linea:
             clave, valor = linea.split(":", 1)
-            metadatos[clave.strip()] = valor.strip().strip('"')
-    return metadatos, texto[fin + 5:]
+            metadatos[clave.strip()] = valor.strip().strip('"').strip("'")
+    return metadatos, texto[fin + 5:]  # 5 = largo de "\n---\n"
+
+
+def revisar_archivo(ruta):
+    """Errores de seguridad del archivo en sí: enlaces (simbólicos o duros), ubicación y tamaño."""
+    if ruta.is_symlink():
+        return ["Es un enlace simbólico: copia el archivo real dentro de knowledge-base/"]
+    if not ruta.resolve().is_relative_to(CARPETA.resolve()):
+        return ["Está fuera de knowledge-base/"]
+    if ruta.stat().st_nlink > 1:
+        return ["Es un enlace duro: copia el archivo real dentro de knowledge-base/"]
+    if ruta.stat().st_size > MAX_BYTES_DOCUMENTO:
+        return [f"Pesa más de {MAX_BYTES_DOCUMENTO} bytes: divídelo en varios documentos"]
+    return []
 
 
 def validar(ruta, ids_vistos):
-    errores, avisos = [], []
+    errores, avisos = revisar_archivo(ruta), []
+    if errores:
+        return errores, avisos
     texto = ruta.read_text(encoding="utf-8")
     metadatos, cuerpo = leer_metadatos(texto)
+
+    texto_minusculas = texto.lower()
+    for frase in FRASES_SOSPECHOSAS:
+        if frase in texto_minusculas:
+            avisos.append(f"Contiene la frase sospechosa '{frase}' (posible inyección de instrucciones)")
 
     if metadatos is None:
         return ["No tiene el bloque de metadatos entre líneas ---"], avisos
@@ -77,7 +117,7 @@ def validar(ruta, ids_vistos):
     # Separar secciones ## ignorando lo que esté dentro de bloques de código
     secciones, actual, en_codigo = [], None, False
     for linea in cuerpo.splitlines():
-        if linea.startswith("```"):
+        if linea.lstrip().startswith("```"):
             en_codigo = not en_codigo
         if not en_codigo and linea.startswith("## "):
             actual = [linea[3:].strip(), ""]

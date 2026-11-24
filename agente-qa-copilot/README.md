@@ -19,9 +19,7 @@ agente-qa-copilot/
 │   │   └── qa-nuevo-proyecto.agent.md   Agente que crea proyectos
 │   ├── qa-conocimiento/                 Reglas, convenciones, errores y plantilla del equipo
 │   └── copilot-instructions.md          Reglas generales que Copilot sigue siempre
-├── .vscode/mcp.json                     (Opcional) conexión al RAG en este computador
-├── actualizar-conocimiento.bat          Trae la última versión del conocimiento desde el RAG
-└── instalar-en-copilot.bat              Instala los agentes en tu Copilot para todos los proyectos
+└── .vscode/mcp.json                     (Opcional) conexión al RAG en este computador
 ```
 
 Los agentes trabajan en dos modos, sin configurar nada:
@@ -41,11 +39,11 @@ Los agentes trabajan en dos modos, sin configurar nada:
 
 ## Instalarlo en Copilot (para todos tus proyectos)
 
-Haz doble clic en **`instalar-en-copilot.bat`**. Copia los agentes y su conocimiento a tu perfil de Copilot (`%USERPROFILE%\.copilot`). No necesita permisos de administrador.
+Haz doble clic en **`instalar.bat`** en la carpeta `qaAutomatizador`. Actualiza el conocimiento, copia los agentes y su conocimiento a tu perfil de Copilot (`%USERPROFILE%\.copilot`). No necesita permisos de administrador ni Python (si no hay Python, solo se salta la instalación del RAG).
 
 Después de cerrar y volver a abrir VS Code, **QA Revisor** y **QA Nuevo Proyecto** aparecen en el selector de agentes de **cualquier** proyecto.
 
-- Para actualizarlos (por ejemplo, después de `actualizar-conocimiento.bat`), ejecútalo de nuevo.
+- Para actualizarlos, ejecuta `instalar.bat` de nuevo. Antes de reemplazarlos guarda una copia de lo instalado en `%USERPROFILE%\.copilot\respaldo-AAAAMMDD-HHMMSS` (puedes borrar esas copias cuando quieras).
 - Para desinstalarlos, borra los archivos `qa-*.agent.md` de `%USERPROFILE%\.copilot\agents`, o usa el ícono de papelera en **Configure Custom Agents...**.
 - Si abres la carpeta `agente-qa-copilot`, los verás repetidos (los del perfil y los de la carpeta). Es normal.
 
@@ -68,4 +66,4 @@ En la empresa, borra `.vscode/mcp.json`: apunta al RAG instalado en este computa
 
 ## Mantener el conocimiento al día
 
-La fuente oficial es `rag-qa-playwright/knowledge-base`. Cuando se agregue o cambie un documento ahí, haz doble clic en **`actualizar-conocimiento.bat`** para copiar la versión nueva a este agente.
+La fuente oficial es `rag-qa-playwright/knowledge-base`. Cuando se agregue o cambie un documento ahí, haz doble clic en **`instalar.bat`** (carpeta `qaAutomatizador`): copia la versión nueva a este agente y a tu Copilot.

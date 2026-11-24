@@ -1,5 +1,6 @@
 [build-system]
-requires = ["setuptools>=68"]
+# 84.1: corrige GHSA-xmj3-9gf7-h52w (escritura fuera de carpeta al instalar en Windows).
+requires = ["setuptools>=84.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -11,10 +12,17 @@ dependencies = [
     "chromadb>=1.5,<2",
     "sentence-transformers>=5,<7",
     "mcp>=2.2,<3",
+    # Pisos de seguridad para dependencias indirectas (resultado de pip-audit, 2026-11-24).
+    # No se usan directamente: solo obligan a instalar una versión sin la vulnerabilidad.
+    "certifi>=2026.10.18",          # PYSEC-2026-4320: certificado raíz comprometido
+    "filelock>=4.2.1",              # CVE-2026-112906 y relacionados
+    "oauthlib>=4.0.1",              # CVE-2026-49272
+    "opentelemetry-api>=1.45.2",    # CVE-2026-126360 (ReDoS)
+    "setuptools>=84.1",             # GHSA-xmj3-9gf7-h52w (torch la necesita en el venv)
 ]
 
 [project.optional-dependencies]
-test = ["pytest>=8"]
+test = ["pytest>=8,<10"]
 
 [project.scripts]
 rag-qa = "rag_qa.cli:main"

@@ -12,8 +12,13 @@ test-results/
 playwright-report/
 blob-report/
 
-# Datos sensibles
+# Datos sensibles (.env, .env.local, .env.qa, ...). Solo se sube .env.example.
 .env
+.env.*
+!.env.example
+
+# Permisos y ajustes locales de Claude Code (personales, no se suben)
+.claude/settings.local.json
 
 # Archivos comprimidos de descarga
 *.zip
@@ -21,3 +26,6 @@ blob-report/
 # Generados al instalar y probar
 *.egg-info/
 .pytest_cache/
+
+# Reportes de prueba y seguridad: son locales, no se suben
+reportes/

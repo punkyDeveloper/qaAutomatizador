@@ -21,7 +21,7 @@ version: 1.0
 - Las aserciones van en el test, no en el Page Object. El Page Object puede exponer locators para que el test los valide.
 
 ## Regla 2: Prioridad de locators
-Usar en este orden:
+Para encontrar un elemento en la página (un botón, un campo, un enlace), usar los locators en este orden:
 1. `getByRole` (rol + nombre accesible)
 2. `getByLabel`
 3. `getByPlaceholder`
@@ -44,12 +44,14 @@ Evitar: selectores por posición (`nth-child`), clases de estilo generadas (`.cs
 Partes compartidas (header, menú, modal, tabla) van en su propia clase de componente y se componen dentro de las páginas. No crear un `BasePage` gigante con todo.
 
 ## Regla 6: Tests independientes
-- Cada test prepara sus datos y no depende del orden de ejecución.
-- La autenticación repetida se resuelve con `storageState` o fixtures, no logueándose por UI en cada test.
+- Cada test prepara sus datos y no depende del orden de ejecución ni de lo que dejó otro test.
+- Iniciar sesión (login) por la interfaz en cada test es lento: la autenticación repetida se resuelve con `storageState` o con un fixture que ya entrega la sesión iniciada.
+- Bien: un paso de setup inicia sesión una vez y guarda la sesión con `storageState`; los tests la reutilizan.
+- Mal: cada test abre la página de login, escribe usuario y clave y hace clic en "Ingresar" antes de probar otra cosa.
 
 ## Regla 7: Datos de prueba
 - No quemar (hardcodear) datos sensibles ni URLs en los tests.
-- URLs base en configuración; credenciales en variables de entorno; datos en fixtures o factories.
+- URLs base en configuración; credenciales (usuario y contraseña de pruebas) en variables de entorno del archivo `.env`; datos en fixtures o factories.
 
 ## Regla 8: Sin lógica condicional en tests
 Un test no debe tener `if/else` para decidir qué validar. Si hay dos caminos, son dos tests.

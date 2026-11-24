@@ -69,6 +69,80 @@ def test_diagnosticar_incluye_codigo_relacionado(herramientas: Herramientas):
     assert "await this.ingresarButton.click();" in salida
 
 
+def test_diagnosticar_con_salida_completa_de_consola_usa_la_linea_del_error(herramientas: Herramientas):
+    consola = f"""Running 1 test using 1 worker
+
+  ✘  1 [chromium] › tests/specs/login.spec.js:5:3 › login (30.0s)
+
+  1) [chromium] › tests/specs/login.spec.js:5:3 › login ───────
+
+    tests/specs/login.spec.js:5:3
+
+{ERROR_TIMEOUT}
+  1 failed
+"""
+    salida = herramientas.diagnosticar_error(consola)
+    assert "Mensaje principal: `Error: locator.click: Timeout 30000ms exceeded.`" in salida
+
+
+# Salida real capturada de Playwright (elemento tapado): el mensaje solo dice "Timeout exceeded";
+# la causa está en el Call log.
+ERROR_ELEMENTO_TAPADO = """TimeoutError: locator.click: Timeout 1500ms exceeded.
+Call log:
+  - waiting for getByRole('button', { name: 'Pagar' })
+    - locator resolved to <button>Pagar</button>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is visible, enabled and stable
+      - scrolling into view if needed
+      - done scrolling
+      - <div>Cargando</div> intercepts pointer events
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is visible, enabled and stable
+      - scrolling into view if needed
+      - done scrolling
+      - <div>Cargando</div> intercepts pointer events
+    - retrying click action
+      - waiting 500ms
+
+
+  28 |   await page.setContent('<button>Pagar</button>'
+  29 |     + '<div style="position:fixed;inset:0;background:#0003">Cargando</div>');
+> 30 |   await page.getByRole('button', { name: 'Pagar' }).click({ timeout: 1500 });
+     |                                                     ^
+  31 | });
+    at tests/specs/fallos-a-proposito.spec.js:30:53
+"""
+
+
+def test_diagnosticar_elemento_tapado_usa_la_pista_del_call_log(herramientas: Herramientas):
+    salida = herramientas.diagnosticar_error(ERROR_ELEMENTO_TAPADO)
+    entradas = salida.split("## Entradas del catálogo de errores")[1]
+    primera = entradas.split("### 2.")[0]
+    assert "Elemento bloqueado por otro" in primera
+    assert "Pistas del Call log: `intercepts pointer events`" in salida
+    assert "**Atención:**" not in salida
+
+
+def test_revisar_page_object_con_expect_lo_marca(herramientas: Herramientas):
+    page_object = """class LoginPage {
+  async validarError(m) {
+    await expect(this.mensajeError).toHaveText(m);
+  }
+}"""
+    salida = herramientas.revisar_codigo(page_object, "tests/pages/LoginPage.js")
+    assert "Aserción (expect) dentro del Page Object" in salida
+    assert "línea(s) 3" in salida
+
+
+def test_revisar_clave_demo_sale_como_aviso(herramientas: Herramientas):
+    salida = herramientas.revisar_codigo("const CLAVE_DEMO = 'secret_sauce';", "tests/data/usuarios.js")
+    assert "(aviso, no es un error) Clave de demo" in salida
+    assert "Posible contraseña escrita en el código" not in salida
+
+
 def test_diagnosticar_error_vacio(herramientas: Herramientas):
     assert "No se recibió ningún error" in herramientas.diagnosticar_error("")
 
@@ -109,3 +183,11 @@ def test_estado_y_reindexar(herramientas: Herramientas):
     total = len(herramientas.indice.documentos)
     assert f"Documentos: {total}" in herramientas.estado()
     assert f"Índice reconstruido: {total} documentos" in herramientas.reindexar()
+
+
+# Bug 5: buscar_conocimiento acota max_resultados igual que la CLI y acepta consulta None.
+def test_buscar_conocimiento_casos_borde(herramientas: Herramientas):
+    con_cero = herramientas.buscar_conocimiento("locator timeout", max_resultados=0)
+    con_uno = herramientas.buscar_conocimiento("locator timeout", max_resultados=1)
+    assert con_cero == con_uno
+    assert isinstance(herramientas.buscar_conocimiento(None, max_resultados=None), str)

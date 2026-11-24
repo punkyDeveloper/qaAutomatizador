@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from rag_qa.documentos import (
+    MAX_BYTES_DOCUMENTO,
     ErrorDocumento,
     cargar_documentos,
     dividir_secciones,
@@ -12,6 +13,7 @@ from rag_qa.documentos import (
     fragmentar_todo,
     huella,
     leer_metadatos,
+    _es_documento_seguro,
 )
 from rag_qa.herramientas import CATEGORIAS
 
@@ -96,3 +98,55 @@ def test_id_repetido_falla(kb_copia: Path):
 def test_carpeta_inexistente_falla(tmp_path: Path):
     with pytest.raises(FileNotFoundError):
         cargar_documentos(tmp_path / "no-existe")
+
+
+def test_error_de_formato_dice_el_archivo_y_como_arreglarlo(kb_copia: Path):
+    (kb_copia / "general" / "roto.md").write_text("# Sin metadatos\n## A\nx\n", encoding="utf-8")
+    with pytest.raises(ErrorDocumento, match=r"roto\.md.*validar_documentos\.py"):
+        cargar_documentos(kb_copia)
+
+
+def test_ignora_documentos_enormes(kb_copia: Path):
+    original = next(kb_copia.rglob("convenciones-equipo.md"))
+    texto = original.read_text(encoding="utf-8").replace("gen-convenciones-001", "gen-enorme-001")
+    relleno = "x" * (MAX_BYTES_DOCUMENTO + 1)
+    (kb_copia / "general" / "enorme.md").write_text(texto + relleno, encoding="utf-8")
+    archivos = [d.archivo for d in cargar_documentos(kb_copia)]
+    assert "general/enorme.md" not in archivos
+
+
+def test_ignora_enlaces_simbolicos_que_salen_de_la_base(kb_copia: Path, tmp_path: Path):
+    # Un .md fuera de la base, con un enlace simbólico dentro de ella que apunta a él.
+    original = next(kb_copia.rglob("convenciones-equipo.md"))
+    externo = tmp_path / "secreto.md"
+    externo.write_text(
+        original.read_text(encoding="utf-8").replace("gen-convenciones-001", "gen-externo-001"),
+        encoding="utf-8",
+    )
+    enlace = kb_copia / "general" / "enlace.md"
+    try:
+        enlace.symlink_to(externo)
+    except OSError:
+        pytest.skip("Este Windows no permite crear enlaces simbólicos sin permisos de administrador")
+    archivos = [d.archivo for d in cargar_documentos(kb_copia)]
+    assert "general/enlace.md" not in archivos
+
+
+def test_archivo_fuera_de_la_base_no_es_seguro(kb_copia: Path, tmp_path: Path):
+    externo = tmp_path / "fuera.md"
+    externo.write_text("---\nid: gen-fuera-001\n---\n# Fuera\n## A\nx\n", encoding="utf-8")
+    assert not _es_documento_seguro(externo, kb_copia)
+    assert _es_documento_seguro(next(kb_copia.rglob("convenciones-equipo.md")), kb_copia)
+
+
+# Bug 3: un .md que no está en UTF-8 da un ErrorDocumento con el nombre del archivo.
+def test_documento_no_utf8_da_error_claro(tmp_path: Path):
+    (tmp_path / "ansi.md").write_bytes("---\nid: gen-x-001\n---\n# Año\n## Sección\nñ\n".encode("latin-1"))
+    with pytest.raises(ErrorDocumento, match=r"ansi\.md.*guárdalo como UTF-8"):
+        cargar_documentos(tmp_path)
+
+
+# Bug 4: un bloque de metadatos vacío está cerrado (no debe decir "no está cerrado").
+def test_bloque_de_metadatos_vacio_se_lee():
+    metadatos, cuerpo = leer_metadatos("---\n---\n# T\n")
+    assert metadatos == {} and cuerpo == "# T\n"

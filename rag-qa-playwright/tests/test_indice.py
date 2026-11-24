@@ -79,3 +79,17 @@ def test_reindexa_solo_cuando_cambia_un_documento(kb_copia: Path, tmp_path: Path
 def test_reindexar_forzado(indice: Indice):
     assert indice.preparar(forzar=True) is True
     assert indice.reconstrucciones == 2
+
+
+# Bug 2: una base sin ninguna sección "## " da un error claro (no el de Chroma).
+def test_base_sin_secciones_da_error_claro(tmp_path: Path):
+    import pytest
+
+    from rag_qa.documentos import ErrorDocumento
+
+    kb = tmp_path / "kb"
+    kb.mkdir()
+    (kb / "doc.md").write_text("---\nid: gen-x-001\n---\n# Solo título\n", encoding="utf-8")
+    indice = Indice(Config(kb_dir=kb, db_dir=tmp_path / "db", embedder="hash"), EmbedderContador())
+    with pytest.raises(ErrorDocumento, match="secciones"):
+        indice.preparar()
