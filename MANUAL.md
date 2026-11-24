@@ -162,7 +162,7 @@ qaAutomatizador/
 ├── instalar.bat                 El ÚNICO instalador (ver sección 2).
 ├── MANUAL.md                    Este manual.
 ├── README.md                    Resumen corto del proyecto.
-├── CLAUDE.md                    Reglas del proyecto para Claude Code (idioma, comandos, agentes).
+├── CLAUDE.md                    Reglas del proyecto para Claude Code (idioma y comandos).
 ├── .mcp.json                    Conecta Claude Code con el RAG.
 ├── .gitignore                   Lo que NO se sube a git (.env, reportes, cachés, base de datos).
 ├── .vscode/
@@ -170,11 +170,6 @@ qaAutomatizador/
 ├── .github/
 │   ├── copilot-instructions.md  Reglas que Copilot sigue siempre en este espacio de trabajo.
 │   └── CODEOWNERS               Quién debe aprobar cambios en carpetas delicadas.
-├── .claude/agents/              Agentes de Claude Code para mantener el proyecto:
-│   ├── dev-rag.md               · corrige y mejora el código del RAG.
-│   ├── probador-rag.md          · prueba que el RAG sirve para automatizar (solo reporta).
-│   ├── revisor-claridad.md      · revisa que el código esté en español y claro (solo reporta).
-│   └── seguridad-rag.md         · audita la seguridad y corrige vulnerabilidades.
 │
 ├── agente-qa-copilot/           LOS AGENTES DE COPILOT (lo que usa el equipo QA)
 │   ├── README.md                Cómo usarlos y configurarlos.
